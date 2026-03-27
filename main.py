@@ -220,8 +220,32 @@ async def main():
                     enemy_hp-=1
 
             # 終了→リスタート
-            if player_hp<=0 or enemy_hp<=0:
-                return
+            # 終了→結果表示
+            if player_hp <= 0 or enemy_hp <= 0:
+
+                result_text = "WIN" if enemy_hp <= 0 else "LOSE"
+
+                waiting = True
+                while waiting:
+                    screen.fill(BLACK)
+
+                    # 結果表示
+                    text = font_small.render(result_text, True, WHITE)
+                    screen.blit(text, text.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 40)))
+
+                    # リトライ表示
+                    retry = font_small.render("Tap to Retry", True, WHITE)
+                    screen.blit(retry, retry.get_rect(center=(WIDTH // 2, HEIGHT // 2 + 20)))
+
+                    pygame.display.flip()
+
+                    for e in pygame.event.get():
+                        if e.type == pygame.QUIT:
+                            return
+                        if e.type == pygame.FINGERDOWN or e.type == pygame.MOUSEBUTTONDOWN:
+                            return
+
+                    await asyncio.sleep(0)
 
             # ===== 描画 =====
             pygame.draw.rect(screen, BLUE, player)
