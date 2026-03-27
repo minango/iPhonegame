@@ -42,11 +42,20 @@ class Button:
     def draw(self, screen):
         pygame.draw.rect(screen, self.color, self.rect)
         pygame.draw.rect(screen, WHITE, self.rect, 2)
-        screen.blit(font_small.render(self.text, True, WHITE),
-                    font_small.render(self.text, True, WHITE).get_rect(center=self.rect.center))
+        text_surf = font_small.render(self.text, True, WHITE)
+        screen.blit(text_surf, text_surf.get_rect(center=self.rect.center))
     def is_clicked(self,pos):
         return self.rect.collidepoint(pos)
 
+# ===== タッチ判定関数 =====
+def check_touch_buttons(touches, buttons):
+    pressed = { "left": False, "right": False, "shoot": False }
+    for t in touches:
+        x, y = t[0]*WIDTH, t[1]*HEIGHT
+        if buttons["left"].collidepoint((x,y)): pressed["left"] = True
+        if buttons["right"].collidepoint((x,y)): pressed["right"] = True
+        if buttons["shoot"].collidepoint((x,y)): pressed["shoot"] = True
+    return pressed
 
 async def main():
     # ===== 難易度選択 =====
@@ -82,8 +91,8 @@ async def main():
 
     # ===== レベル選択 =====
     colors=[
-    (180,180,180),(160,160,220),(140,140,255),(120,180,255),(100,200,255),
-    (80,220,255),(60,240,255),(40,255,200),(20,255,100),(0,255,0)
+        (180,180,180),(160,160,220),(140,140,255),(120,180,255),(100,200,255),
+        (80,220,255),(60,240,255),(40,255,200),(20,255,100),(0,255,0)
     ]
     level_buttons=[]
     for i in range(10):
@@ -117,6 +126,7 @@ async def main():
     left_btn = pygame.Rect(30, HEIGHT-120, 80, 80)
     right_btn = pygame.Rect(130, HEIGHT-120, 80, 80)
     shoot_btn = pygame.Rect(WIDTH-110, HEIGHT-120, 80, 80)
+    buttons = {"left": left_btn, "right": right_btn, "shoot": shoot_btn}
 
     # ===== 独立フラグ =====
     moving_left = False
@@ -129,16 +139,29 @@ async def main():
         screen.fill(BLACK)
 
         # ===== イベント =====
+        touches = []
         for e in pygame.event.get():
             if e.type==pygame.QUIT: running=False
             if e.type==pygame.MOUSEBUTTONDOWN:
-                if left_btn.collidepoint(e.pos): moving_left=True
-                if right_btn.collidepoint(e.pos): moving_right=True
-                if shoot_btn.collidepoint(e.pos): shooting=True
+                x, y = e.pos
+                if left_btn.collidepoint((x,y)): moving_left=True
+                if right_btn.collidepoint((x,y)): moving_right=True
+                if shoot_btn.collidepoint((x,y)): shooting=True
             if e.type==pygame.MOUSEBUTTONUP:
-                if left_btn.collidepoint(e.pos): moving_left=False
-                if right_btn.collidepoint(e.pos): moving_right=False
-                if shoot_btn.collidepoint(e.pos): shooting=False
+                x, y = e.pos
+                if left_btn.collidepoint((x,y)): moving_left=False
+                if right_btn.collidepoint((x,y)): moving_right=False
+                if shoot_btn.collidepoint((x,y)): shooting=False
+            if e.type==pygame.FINGERDOWN:
+                touches.append((e.x,e.y))
+            if e.type==pygame.FINGERUP:
+                touches.append((e.x,e.y))
+
+        # タッチ判定
+        touch_pressed = check_touch_buttons(touches, buttons)
+        moving_left |= touch_pressed["left"]
+        moving_right |= touch_pressed["right"]
+        shooting |= touch_pressed["shoot"]
 
         # ===== プレイヤー操作 =====
         if moving_left: player.x -= 5
@@ -150,13 +173,9 @@ async def main():
         # ===== 敵追跡と射撃 =====
         dx = player.centerx - enemy.centerx
         direction = dx / abs(dx) if dx != 0 else 0
-
-        # レベルごとの追跡速度
         tracking_speed = cp_levels[cp_level]["speed"]
         enemy.x += direction * tracking_speed
         enemy.x = max(0, min(WIDTH-enemy.width, enemy.x))
-
-        # 射撃
         if random.randint(0, cp_levels[cp_level]["shoot_rate"])==0:
             enemy_bullets.append(pygame.Rect(enemy.centerx-5, enemy.bottom, 10,10))
 
