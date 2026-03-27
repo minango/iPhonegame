@@ -15,7 +15,6 @@ BLACK = (0,0,0)
 GREEN = (0,180,0)
 GRAY = (100,100,100)
 
-font = pygame.font.SysFont(None,60)
 font_small = pygame.font.SysFont(None,28)
 
 cp_levels = [
@@ -46,7 +45,7 @@ class Button:
 
 async def main():
 
-    while True:  # ←リトライループ
+    while True:
 
         # ===== 難易度 =====
         difficulty_buttons = [
@@ -116,8 +115,7 @@ async def main():
         shoot_btn = pygame.Rect(WIDTH-110, HEIGHT-120, 80, 80)
 
         shoot_cooldown = 0
-        cooldown_time = 30  # 0.5秒
-        cooldown_chance = 0.1
+        cooldown_time = 30
 
         active_touches = {}
 
@@ -135,21 +133,19 @@ async def main():
                 if e.type==pygame.FINGERUP:
                     active_touches.pop(e.finger_id, None)
 
-            # タッチ同時押し
+            # 同時押し
             for tx,ty in active_touches.values():
                 x,y = tx*WIDTH, ty*HEIGHT
                 if left_btn.collidepoint((x,y)): moving_left=True
                 if right_btn.collidepoint((x,y)): moving_right=True
                 if shoot_btn.collidepoint((x,y)): shooting=True
 
-            # マウス
             if pygame.mouse.get_pressed()[0]:
                 mx,my = pygame.mouse.get_pos()
                 if left_btn.collidepoint((mx,my)): moving_left=True
                 if right_btn.collidepoint((mx,my)): moving_right=True
                 if shoot_btn.collidepoint((mx,my)): shooting=True
 
-            # クールタイム
             if shoot_cooldown>0:
                 shoot_cooldown-=1
 
@@ -158,12 +154,10 @@ async def main():
 
             if shooting and shoot_cooldown==0:
                 player_bullets.append(pygame.Rect(player.centerx-5, player.y,10,10))
-                if random.random()<cooldown_chance:
-                    shoot_cooldown=cooldown_time
+                shoot_cooldown=cooldown_time
 
             player.x = max(0,min(WIDTH-player.width,player.x))
 
-            # 敵
             dx = player.centerx-enemy.centerx
             direction = dx/abs(dx) if dx!=0 else 0
             enemy.x += direction*cp_levels[cp_level]["speed"]
@@ -172,7 +166,6 @@ async def main():
             if random.randint(0,cp_levels[cp_level]["shoot_rate"])==0:
                 enemy_bullets.append(pygame.Rect(enemy.centerx-5,enemy.bottom,10,10))
 
-            # 弾
             for b in player_bullets: b.y-=7
             for b in enemy_bullets: b.y+=7
 
@@ -193,18 +186,12 @@ async def main():
                     player_bullets.remove(b)
                     enemy_hp-=1
 
-            # ===== 勝敗（修正済み） =====
+            # ===== ゲーム終了 → 即リトライ画面 =====
             if player_hp<=0 or enemy_hp<=0:
                 while True:
                     screen.fill(BLACK)
 
-                    text = font.render("WIN" if enemy_hp<=0 else "LOSE",
-                                       True,
-                                       BLUE if enemy_hp<=0 else RED)
-
-                    retry_rect = pygame.Rect(WIDTH//2-60, HEIGHT//2+80,120,50)
-
-                    screen.blit(text, text.get_rect(center=(WIDTH//2, HEIGHT//2)))
+                    retry_rect = pygame.Rect(WIDTH//2-60, HEIGHT//2,120,50)
 
                     pygame.draw.rect(screen, GREEN, retry_rect)
                     pygame.draw.rect(screen, WHITE, retry_rect,2)
@@ -214,8 +201,7 @@ async def main():
                     pygame.display.flip()
 
                     for e in pygame.event.get():
-                        if e.type==pygame.QUIT:
-                            return
+                        if e.type==pygame.QUIT: return
                         if e.type==pygame.MOUSEBUTTONDOWN:
                             if retry_rect.collidepoint(e.pos):
                                 return
@@ -226,7 +212,7 @@ async def main():
 
                     await asyncio.sleep(0)
 
-            # ===== 描画 =====
+            # 描画
             pygame.draw.rect(screen, BLUE, player)
             pygame.draw.rect(screen, RED, enemy)
 
@@ -236,12 +222,12 @@ async def main():
                 pygame.draw.rect(screen, WHITE, b)
 
             # HPバー
-            bar_x = (WIDTH-200)//2
-            pygame.draw.rect(screen, WHITE, (bar_x,20,200,20),2)
-            pygame.draw.rect(screen, RED, (bar_x,20,200*(enemy_hp/max_enemy_hp),20))
+            x = (WIDTH-200)//2
+            pygame.draw.rect(screen, WHITE, (x,20,200,20),2)
+            pygame.draw.rect(screen, RED, (x,20,200*(enemy_hp/max_enemy_hp),20))
 
-            pygame.draw.rect(screen, WHITE, (bar_x,HEIGHT-60,200,20),2)
-            pygame.draw.rect(screen, BLUE, (bar_x,HEIGHT-60,200*(player_hp/max_player_hp),20))
+            pygame.draw.rect(screen, WHITE, (x,HEIGHT-60,200,20),2)
+            pygame.draw.rect(screen, BLUE, (x,HEIGHT-60,200*(player_hp/max_player_hp),20))
 
             # ボタン
             pygame.draw.rect(screen, GREEN, left_btn)
