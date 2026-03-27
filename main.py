@@ -244,5 +244,4 @@ async def main():
             pygame.display.flip()
             await asyncio.sleep(0)
 
-while True:
     asyncio.run(main())
