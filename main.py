@@ -47,16 +47,6 @@ class Button:
     def is_clicked(self,pos):
         return self.rect.collidepoint(pos)
 
-# ===== タッチ判定関数 =====
-def check_touch_buttons(touches, buttons):
-    pressed = { "left": False, "right": False, "shoot": False }
-    for t in touches:
-        x, y = t[0]*WIDTH, t[1]*HEIGHT
-        if buttons["left"].collidepoint((x,y)): pressed["left"] = True
-        if buttons["right"].collidepoint((x,y)): pressed["right"] = True
-        if buttons["shoot"].collidepoint((x,y)): pressed["shoot"] = True
-    return pressed
-
 async def main():
     # ===== 難易度選択 =====
     difficulty_buttons = [
@@ -126,47 +116,41 @@ async def main():
     left_btn = pygame.Rect(30, HEIGHT-120, 80, 80)
     right_btn = pygame.Rect(130, HEIGHT-120, 80, 80)
     shoot_btn = pygame.Rect(WIDTH-110, HEIGHT-120, 80, 80)
-    buttons = {"left": left_btn, "right": right_btn, "shoot": shoot_btn}
-
-    # ===== 独立フラグ =====
-    moving_left = False
-    moving_right = False
-    shooting = False
 
     running=True
+    # タッチ管理リスト（スマホ用）
+    active_touches = []
+
     while running:
         clock.tick(60)
         screen.fill(BLACK)
 
-        # ===== イベント =====
-        touches = []
-        for e in pygame.event.get():
-            if e.type==pygame.QUIT: running=False
-            if e.type==pygame.MOUSEBUTTONDOWN:
-                x, y = e.pos
-                if left_btn.collidepoint((x,y)): moving_left=True
-                if right_btn.collidepoint((x,y)): moving_right=True
-                if shoot_btn.collidepoint((x,y)): shooting=True
-            if e.type==pygame.MOUSEBUTTONUP:
-                x, y = e.pos
-                if left_btn.collidepoint((x,y)): moving_left=False
-                if right_btn.collidepoint((x,y)): moving_right=False
-                if shoot_btn.collidepoint((x,y)): shooting=False
-            if e.type==pygame.FINGERDOWN:
-                touches.append((e.x,e.y))
-            if e.type==pygame.FINGERUP:
-                touches.append((e.x,e.y))
+        # ===== 入力処理（PC・スマホ共通） =====
+        moving_left = moving_right = shooting = False
 
-        # タッチ判定
-        touch_pressed = check_touch_buttons(touches, buttons)
-        moving_left |= touch_pressed["left"]
-        moving_right |= touch_pressed["right"]
-        shooting |= touch_pressed["shoot"]
+        # PCマウス判定
+        mouse_pressed = pygame.mouse.get_pressed()
+        if mouse_pressed[0]:
+            mx, my = pygame.mouse.get_pos()
+            if left_btn.collidepoint((mx,my)): moving_left = True
+            if right_btn.collidepoint((mx,my)): moving_right = True
+            if shoot_btn.collidepoint((mx,my)): shooting = True
+
+        # イベント処理（スマホタッチ用）
+        for e in pygame.event.get():
+            if e.type==pygame.QUIT:
+                running=False
+            # タッチ開始または移動
+            if e.type in [pygame.FINGERDOWN, pygame.FINGERMOTION]:
+                tx, ty = e.x*WIDTH, e.y*HEIGHT
+                if left_btn.collidepoint((tx,ty)): moving_left = True
+                if right_btn.collidepoint((tx,ty)): moving_right = True
+                if shoot_btn.collidepoint((tx,ty)): shooting = True
 
         # ===== プレイヤー操作 =====
         if moving_left: player.x -= 5
         if moving_right: player.x += 5
-        if shooting and len(player_bullets)<5:
+        if shooting:
             player_bullets.append(pygame.Rect(player.centerx-5, player.y,10,10))
         player.x = max(0,min(WIDTH-player.width,player.x))
 
@@ -175,7 +159,7 @@ async def main():
         direction = dx / abs(dx) if dx != 0 else 0
         tracking_speed = cp_levels[cp_level]["speed"]
         enemy.x += direction * tracking_speed
-        enemy.x = max(0, min(WIDTH-enemy.width, enemy.x))
+        enemy.x = max(0, min(WIDTH-enemy.width,enemy.x))
         if random.randint(0, cp_levels[cp_level]["shoot_rate"])==0:
             enemy_bullets.append(pygame.Rect(enemy.centerx-5, enemy.bottom, 10,10))
 
@@ -206,7 +190,7 @@ async def main():
         for b in player_bullets: pygame.draw.rect(screen, WHITE, b)
         for b in enemy_bullets: pygame.draw.rect(screen, WHITE, b)
 
-        # HP中央
+        # HPバー
         x = (WIDTH-200)//2
         pygame.draw.rect(screen, WHITE, (x,20,200,20),2)
         pygame.draw.rect(screen, RED, (x,20,200*(enemy_hp/max_enemy_hp),20))
