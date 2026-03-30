@@ -141,7 +141,6 @@ async def main():
         enemy_hp=3+cp_level*2
         max_enemy_hp=enemy_hp
 
-        # スコア用
         start_time = pygame.time.get_ticks()
 
         left_btn = pygame.Rect(30, HEIGHT-120, 80, 80)
@@ -225,6 +224,8 @@ async def main():
                 else:
                     score = 0
 
+                retry_btn = pygame.Rect(WIDTH//2-80, HEIGHT//2+30, 160, 50)
+
                 waiting = True
                 while waiting:
                     screen.fill(BLACK)
@@ -235,15 +236,25 @@ async def main():
                     s = font_small.render(f"Score: {score}", True, WHITE)
                     screen.blit(s, s.get_rect(center=(WIDTH//2, HEIGHT//2)))
 
-                    t2 = font_small.render("Tap to Retry", True, WHITE)
-                    screen.blit(t2, t2.get_rect(center=(WIDTH//2, HEIGHT//2+40)))
+                    pygame.draw.rect(screen, GREEN, retry_btn)
+                    pygame.draw.rect(screen, WHITE, retry_btn, 2)
+                    t2 = font_small.render("RETRY", True, WHITE)
+                    screen.blit(t2, t2.get_rect(center=retry_btn.center))
 
                     pygame.display.flip()
 
                     for e in pygame.event.get():
                         if e.type==pygame.QUIT:
                             return
-                        if e.type in (pygame.FINGERDOWN, pygame.MOUSEBUTTONDOWN):
+
+                        if e.type == pygame.FINGERDOWN:
+                            pos=(e.x*WIDTH,e.y*HEIGHT)
+                        elif e.type == pygame.MOUSEBUTTONDOWN:
+                            pos=e.pos
+                        else:
+                            continue
+
+                        if retry_btn.collidepoint(pos):
                             waiting=False
 
                     await asyncio.sleep(0)
