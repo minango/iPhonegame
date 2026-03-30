@@ -219,7 +219,7 @@ async def main():
                 result = "WIN" if enemy_hp <= 0 else "LOSE"
 
                 if result == "WIN":
-                    base_score = max(1, int(10000 / time_sec))
+                    base_score = max(1, int(50000 / time_sec))
                     level_bonus = (cp_level + 1) * 500
                     score = base_score + level_bonus
                     score = (score // 1000) * 1000
