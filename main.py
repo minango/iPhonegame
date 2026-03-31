@@ -207,6 +207,18 @@ async def main():
             for b in enemy_bullets:
                 b.y+=7
 
+                # 弾同士の相殺
+                for pb in player_bullets[:]:
+                    for eb in enemy_bullets[:]:
+                        if pb["rect"].colliderect(eb):
+                            if not pb.get("pierce"):  # 貫通弾は消えない
+                                player_bullets.remove(pb)
+                            enemy_bullets.remove(eb)
+
+                            # 爆発エフェクト
+                            explosions.append([pb["rect"].centerx, pb["rect"].centery, 5])
+                            break
+
             for b in enemy_bullets[:]:
                 if player.colliderect(b):
                     enemy_bullets.remove(b)
