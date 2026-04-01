@@ -329,8 +329,20 @@ async def main():
             for e in pygame.event.get():
                 if e.type == pygame.QUIT:
                     return
-                if e.type in (pygame.FINGERDOWN, pygame.MOUSEBUTTONDOWN):
-                    pos = (e.x * WIDTH, e.y * HEIGHT) if e.type == pygame.FINGERDOWN else e.pos
+                    if e.type in (pygame.FINGERDOWN, pygame.MOUSEBUTTONDOWN):
+
+                        if e.type == pygame.FINGERDOWN:
+                            pos = (e.x * WIDTH, e.y * HEIGHT)
+                        else:
+                            pos = e.pos
+
+                        if normal_btn.rect.collidepoint(pos):
+                            mode = "normal"
+                            selecting = False
+
+                        if boss_btn.rect.collidepoint(pos):
+                            mode = "boss"
+                            selecting = False
 
                     if normal_btn.rect.collidepoint(pos):
                         mode = "normal"
@@ -387,7 +399,34 @@ async def main():
             for e in pygame.event.get():
                 if e.type==pygame.QUIT: return
                 if e.type in (pygame.FINGERDOWN, pygame.MOUSEBUTTONDOWN):
-                    pos = (e.x*WIDTH,e.y*HEIGHT) if e.type==pygame.FINGERDOWN else e.pos
+
+                    if e.type == pygame.FINGERDOWN:
+                        pos = (e.x * WIDTH, e.y * HEIGHT)
+                    else:
+                        pos = e.pos
+
+                    for b in buttons:
+                        if b.rect.collidepoint(pos):
+                            if b.text == "Easy":
+                                max_player_hp = 20
+                            elif b.text == "Normal":
+                                max_player_hp = 10
+                            elif b.text == "Hard":
+                                max_player_hp = 5
+                            elif b.text == "Ultra":
+                                max_player_hp = 1
+                            selecting = False
+                    if e.type in (pygame.FINGERDOWN, pygame.MOUSEBUTTONDOWN):
+
+                        if e.type == pygame.FINGERDOWN:
+                            pos = (e.x * WIDTH, e.y * HEIGHT)
+                        else:
+                            pos = e.pos
+
+                        for i, b in enumerate(level_buttons):
+                            if b.rect.collidepoint(pos):
+                                cp_level = i
+                                selecting = False
                     for i,b in enumerate(level_buttons):
                         if b.rect.collidepoint(pos):
                             cp_level=i
