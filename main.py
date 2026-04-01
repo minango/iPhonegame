@@ -316,7 +316,7 @@ async def main():
 
         selecting = True
         mode = "normal"
-
+        active_touches = {}
         while selecting:
             screen.fill(BLACK)
             screen.blit(font_small.render("Select Mode", True, WHITE), (150, 200))
@@ -329,20 +329,8 @@ async def main():
             for e in pygame.event.get():
                 if e.type == pygame.QUIT:
                     return
-                    if e.type in (pygame.FINGERDOWN, pygame.MOUSEBUTTONDOWN):
-
-                        if e.type == pygame.FINGERDOWN:
-                            pos = (e.x * WIDTH, e.y * HEIGHT)
-                        else:
-                            pos = e.pos
-
-                        if normal_btn.rect.collidepoint(pos):
-                            mode = "normal"
-                            selecting = False
-
-                        if boss_btn.rect.collidepoint(pos):
-                            mode = "boss"
-                            selecting = False
+                if e.type in (pygame.FINGERDOWN, pygame.MOUSEBUTTONDOWN):
+                    pos = (e.x * WIDTH, e.y * HEIGHT) if e.type == pygame.FINGERDOWN else e.pos
 
                     if normal_btn.rect.collidepoint(pos):
                         mode = "normal"
