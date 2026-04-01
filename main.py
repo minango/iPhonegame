@@ -326,8 +326,13 @@ async def main():
             for e in pygame.event.get():
                 if e.type == pygame.QUIT:
                     return
-                if e.type in (pygame.FINGERDOWN, pygame.MOUSEBUTTONDOWN):
-                    pos = (e.x * WIDTH, e.y * HEIGHT) if e.type == pygame.FINGERDOWN else e.pos
+                    if e.type == pygame.FINGERDOWN:
+                        x = int(e.x * WIDTH)
+                        y = int(e.y * HEIGHT)
+                        pos = (x, y)
+
+                    elif e.type == pygame.MOUSEBUTTONDOWN:
+                        pos = e.pos
 
                     if normal_btn.rect.collidepoint(pos):
                         mode = "normal"
