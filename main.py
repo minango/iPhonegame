@@ -146,29 +146,19 @@ async def boss_raid():
             if player_alive:
                 if moving_left: player.x -= 5
                 if moving_right: player.x += 5
-            if moving_left: player.x -= 5
-            if moving_right: player.x += 5
+
+                player.x = max(0, min(WIDTH - player.width, player.x))
 
         if shoot_cd > 0: shoot_cd -= 1
 
-        # ===== 復活処理 =====
         if not player_alive:
             respawn_timer -= 1
             if respawn_timer <= 0:
                 player_alive = True
                 player.x = WIDTH // 2
-                invincible_timer = 120  # ★2秒無敵
-            respawn_timer -= 1
-            if respawn_timer <= 0:
-                player_alive = True
-                player.x = WIDTH // 2
+                invincible_timer = 120
         else:
             if shooting and shoot_cooldown == 0:
-                bullets.append({
-                    "rect": pygame.Rect(player.centerx - 5, player.y, 10, 10),
-                    "power": 1
-                })
-                shoot_cooldown = cooldown_time
                 bullets.append({
                     "rect": pygame.Rect(player.centerx - 5, player.y, 10, 10),
                     "power": 1
@@ -214,7 +204,15 @@ async def boss_raid():
                 boss_hp -= b["power"]
                 bullets.remove(b)
 
-            for b in enemy_bullets[:]:
+                for b in enemy_bullets[:]:
+                    if player_alive and invincible_timer == 0 and player.colliderect(b):
+                        enemy_bullets.remove(b)
+                        player_hp -= 1
+
+                        if player_hp <= 0:
+                            player_alive = False
+                            respawn_timer = 600
+                            player_hp = max_player_hp
                 if player_alive and invincible_timer == 0 and player.colliderect(b):
                     enemy_bullets.remove(b)
 
@@ -224,7 +222,6 @@ async def boss_raid():
                         player_alive = False
                         respawn_timer = 600  # 10秒
                         player_hp = max_player_hp
-            if player_alive and player.colliderect(b):
                 enemy_bullets.remove(b)
                 player_hp -= 1
 
