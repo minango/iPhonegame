@@ -687,9 +687,25 @@ async def boss_battle(level):
                         player_bullets.remove(pb)
                     break
 
-        # ===== ボスヒット =====
-        for pb in player_bullets[:]:
-            if boss.colliderect(pb["rect"]):
+                # ===== ボスヒット（修正版）=====
+                for pb in player_bullets[:]:
+                    if boss.colliderect(pb["rect"]):
+
+                        # ダメージ
+                        boss_hp -= pb["power"]
+                        shake_timer = 6
+                        explosions.append([boss.centerx, boss.centery, 6])
+
+                        # コンボ（味方弾は除外）
+                        if not pb.get("ally"):
+                            combo += 1
+                            combo_timer = 180
+                            buff_gauge = min(20, buff_gauge + 1)
+
+                        # ===== 弾消す処理 =====
+                        # 通常弾 → 必ず消える
+                        # スペシャル弾 → 1回当たったら消える
+                        player_bullets.remove(pb)
 
                 boss_hp -= pb["power"]
                 shake_timer = 6
