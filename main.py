@@ -617,6 +617,47 @@ async def boss_battle(level):
         # ===== 味方CP（完成版）=====
         for i, cp in enumerate(cp_allies):
 
+            # ===== ボス弾 =====
+            if random.randint(0, 15) == 0:
+                bullets.append(pygame.Rect(boss.centerx, boss.bottom, 14, 14))
+
+            # ===== 弾移動 =====
+            for pb in player_bullets:
+                pb["rect"].y -= 2
+
+            # ===== 弾相殺＆ボスヒット =====
+            for pb in player_bullets[:]:
+
+                hit = False
+
+                # 弾相殺
+                for eb in bullets[:]:
+                    if pb["rect"].colliderect(eb):
+                        bullets.remove(eb)
+                        hit = True
+                        break
+
+                # ボスヒット
+                if boss.colliderect(pb["rect"]):
+                    boss_hp -= pb["power"]
+                    shake_timer = 6
+                    explosions.append([boss.centerx, boss.centery, 6])
+
+                    if not pb.get("ally"):
+                        combo += 1
+                        combo_timer = 180
+                        buff_gauge = min(20, buff_gauge + 1)
+
+                    hit = True
+
+                    if not pb.get("pierce"):
+                        if pb in player_bullets:
+                            player_bullets.remove(pb)
+                        try:
+                            player_bullets.remove(pb)
+                        except ValueError:
+                            pass
+
             if ally_hp[i] > 0:
 
                 target_x = boss.centerx
@@ -640,7 +681,7 @@ async def boss_battle(level):
                 if i == 0:
                     if random.randint(0, max(40 - level, 10)) == 0:
                         player_bullets.append({
-                            "rect": pygame.Rect(cp.centerx, cp.y, 6, 12),
+                            "rect": pygame.Rect(cp.centerx - 3, cp.y + 20, 6, 12),
                             "power": 1 + attack_power,
                             "ally": True
                         })
@@ -648,7 +689,7 @@ async def boss_battle(level):
                 elif i == 1:
                     if random.randint(0, max(30 - level, 8)) == 0:
                         player_bullets.append({
-                            "rect": pygame.Rect(cp.centerx, cp.y, 6, 12),
+                            "rect":pygame.Rect(cp.centerx - 3, cp.y + 20, 6, 12),
                             "power": 1.2 + attack_power,
                             "ally": True
                         })
@@ -657,7 +698,7 @@ async def boss_battle(level):
                     if random.randint(0, max(25 - level, 6)) == 0:
                         for _ in range(2):
                             player_bullets.append({
-                                "rect": pygame.Rect(cp.centerx + random.randint(-10, 10), cp.y, 6, 12),
+                                "rect": pygame.Rect(cp.centerx + random.randint(-10, 10), cp.y + 20, 8, 16),
                                 "power": 0.7 + attack_power,
                                 "ally": True
                             })
@@ -669,57 +710,6 @@ async def boss_battle(level):
                     ally_hp[i] = 3 + level // 5
                     ally_respawn[i] = 0
 
-        # ===== ボス弾 =====
-        if random.randint(0, 15) == 0:
-            bullets.append(pygame.Rect(boss.centerx, boss.bottom, 14, 14))
-        # ===== 弾移動 =====
-        for b in bullets:
-            b.y += 5 + level
-
-        for pb in player_bullets[:]:
-            pb["rect"].y -= 8
-
-        # ===== 弾相殺（全部対応）=====
-        for pb in player_bullets[:]:
-            for eb in bullets[:]:
-                if pb["rect"].colliderect(eb):
-                    bullets.remove(eb)
-                    if not pb.get("pierce"):
-                        player_bullets.remove(pb)
-                    break
-
-                # ===== ボスヒット（修正版）=====
-                for pb in player_bullets[:]:
-                    if boss.colliderect(pb["rect"]):
-
-                        # ダメージ
-                        boss_hp -= pb["power"]
-                        shake_timer = 6
-                        explosions.append([boss.centerx, boss.centery, 6])
-
-                        # コンボ（味方弾は除外）
-                        if not pb.get("ally"):
-                            combo += 1
-                            combo_timer = 180
-                            buff_gauge = min(20, buff_gauge + 1)
-
-                        # ===== 弾消す処理 =====
-                        # 通常弾 → 必ず消える
-                        # スペシャル弾 → 1回当たったら消える
-                        player_bullets.remove(pb)
-
-                boss_hp -= pb["power"]
-                shake_timer = 6
-                explosions.append([boss.centerx, boss.centery, 6])
-
-                # 🔥 味方弾はコンボ＆バフに影響しない
-                if not pb.get("ally"):
-                    combo += 1
-                    combo_timer = 180  # 3秒
-                    buff_gauge = min(20, buff_gauge + 1)
-
-                if not pb.get("pierce"):
-                    player_bullets.remove(pb)
 
         # ===== 被弾 =====
         for b in bullets[:]:
@@ -772,6 +762,10 @@ async def boss_battle(level):
             pygame.draw.rect(screen, color, cp.move(offset, 0))
 
         # ボス弾
+        # ===== ボス弾移動（これが無いと止まる）=====
+        for b in bullets:
+            b.y += 6
+
         for b in bullets:
             pygame.draw.rect(screen, RED, b.move(offset, 0))
 
