@@ -453,7 +453,7 @@ async def boss_battle(level):
     player_hp = 10
     max_player_hp = 10
     cp_directions = [1, -1, 1]
-    # ===== ボスHPスケール調整 =====
+
     boss_hp = int(80 + (level + 1) ** 1.8 * 10)
     max_boss_hp = boss_hp
 
@@ -461,7 +461,6 @@ async def boss_battle(level):
     player_bullets = []
     explosions = []
 
-    # ===== 追加要素 =====
     shake_timer = 0
 
     combo = 0
@@ -470,10 +469,9 @@ async def boss_battle(level):
     respawn_timer = 0
     player_dead = False
 
-    # ===== 味方CP（弱体＋レベルで強化）=====
     cp_allies = [
         pygame.Rect(WIDTH // 2 - 120, HEIGHT - 200, 40, 40),
-        pygame.Rect(WIDTH // 2, HEIGHT - 230, 40, 40),  # ← 追加（中央）
+        pygame.Rect(WIDTH // 2, HEIGHT - 230, 40, 40),
         pygame.Rect(WIDTH // 2 + 80, HEIGHT - 200, 40, 40)
     ]
     cp_pos = [
@@ -482,22 +480,19 @@ async def boss_battle(level):
         float(cp_allies[2].x)
     ]
 
-    # 元：5固定 → 弱体＆スケール
+    # 🔥 少しだけ強化（元コード維持しつつ）
     ally_hp = [3 + level // 5, 3 + level // 5, 3 + level // 5]
     ally_respawn = [0, 0, 0]
 
-    # ===== ボタン =====
     left_btn = pygame.Rect(30, HEIGHT - 160, 80, 80)
     right_btn = pygame.Rect(130, HEIGHT - 160, 80, 80)
     shoot_btn = pygame.Rect(WIDTH - 110, HEIGHT - 160, 80, 80)
     special_btn = pygame.Rect(WIDTH - 110, HEIGHT - 250, 80, 60)
 
-    # ===== バフボタン =====
     buff_c_btn = pygame.Rect(230, HEIGHT - 160, 40, 40)
     buff_s_btn = pygame.Rect(275, HEIGHT - 160, 40, 40)
     buff_h_btn = pygame.Rect(320, HEIGHT - 160, 40, 40)
 
-    # ===== ゲージ =====
     special_gauge = 0
     special_timer = 0
 
@@ -518,12 +513,10 @@ async def boss_battle(level):
         clock.tick(60)
         screen.fill(BLACK)
 
-        # ===== 揺れ =====
         offset = random.randint(-4, 4) if shake_timer > 0 else 0
         if shake_timer > 0:
             shake_timer -= 1
 
-        # ===== 入力 =====
         moving_left = moving_right = shooting = special = False
         buff_c = buff_s = buff_h = False
 
@@ -547,34 +540,29 @@ async def boss_battle(level):
             if buff_s_btn.collidepoint((x, y)): buff_s = True
             if buff_h_btn.collidepoint((x, y)): buff_h = True
 
-        # ===== スペシャルゲージ（遅くする）=====
         special_timer += 1
-        if special_timer >= 90:  # ←60→90（溜まるの遅く）
+        if special_timer >= 90:
             special_timer = 0
             special_gauge = min(10, special_gauge + 1)
 
-        # 🔥 バフ10秒でMAX
         buff_timer += 1
         if buff_timer >= 30:
             buff_timer = 0
             buff_gauge = min(20, buff_gauge + 1)
 
-        # ===== バフ発動 =====
         if buff_gauge >= 20:
             if buff_c:
-                cooldown_reduction += 0.03  # ←0.1 → 0.03（超重要）
+                cooldown_reduction += 0.03
                 buff_gauge = 0
             elif buff_s:
-                attack_power += 0.15  # ←0.3 → 半分
+                attack_power += 0.15
                 buff_gauge = 0
             elif buff_h:
                 player_hp = min(max_player_hp, player_hp + 2)
                 buff_gauge = 0
 
-        # ===== プレイヤー復活処理 =====
         if player_dead:
             respawn_timer += 1
-
             if respawn_timer >= 300:
                 player_hp = max_player_hp
                 player_dead = False
@@ -582,7 +570,6 @@ async def boss_battle(level):
                 player.centerx = WIDTH // 2
 
         else:
-            # ===== プレイヤー操作 =====
             if moving_left: player.x -= 6
             if moving_right: player.x += 6
 
@@ -596,7 +583,6 @@ async def boss_battle(level):
                 })
                 shoot_cooldown = max(1, int(20 - cooldown_reduction * 60))
 
-            # ===== スペシャル =====
             if special and special_gauge >= 10:
                 player_bullets.append({
                     "rect": pygame.Rect(player.centerx - 15, player.y, 30, 30),
@@ -609,67 +595,78 @@ async def boss_battle(level):
 
             player.x = max(0, min(WIDTH - player.width, player.x))
 
-        # ===== ボス移動（ランダム追加）=====
         boss.x += boss_direction * (3 + level * 0.3)
         if boss.left <= 0 or boss.right >= WIDTH:
             boss_direction *= -1
 
-        # ===== 味方CP（完成版）=====
-        for i, cp in enumerate(cp_allies):
+        # 🔥 レベル依存連射
+        shoot_rate = max(5, int(40 - level * 2))
+        # ===== ボス弾（HP付き）=====
+        if random.randint(0, max(5, int(40 - level * 2))) == 0:
+            bullets.append({
+                "rect": pygame.Rect(boss.centerx, boss.bottom, 14, 14),
+                "hp": 5
+            })
 
-            # ===== ボス弾 =====
-            if random.randint(0, 7) == 0:
-                bullets.append(pygame.Rect(boss.centerx, boss.bottom, 14, 14))
+        # ===== 弾移動 =====
+        for pb in player_bullets:
+            if pb.get("ally"):
+                pb["rect"].y -= 7  # ←高速化
+            else:
+                pb["rect"].y -= 2
 
-            # ===== 弾移動 =====
-            for pb in player_bullets:
-                if pb.get("ally"):
-                    pb["rect"].y -= 1  # ←味方だけ半分
-                else:
-                    pb["rect"].y -= 2  # ←自分はそのまま
+        for b in bullets:
+            b["rect"].y += 6
 
-            # ===== 弾相殺＆ボスヒット =====
-            for pb in player_bullets[:]:
+        # ===== 弾相殺＆ボスヒット =====
+        for pb in player_bullets[:]:
 
-                hit = False
+            hit = False
 
-                # 弾相殺
-                for eb in bullets[:]:
-                    if pb["rect"].colliderect(eb):
-                        bullets.remove(eb)
-                        hit = True
-                        break
-                # すでにヒット済みの貫通弾は無視
-                if pb.get("pierce") and pb.get("hit_enemy"):
-                    continue
-                if pb.get("pierce"):
-                    pb["hit_enemy"] = True
-                # ボスヒット
-                if boss.colliderect(pb["rect"]):
-                    boss_hp -= pb["power"]
-                    shake_timer = 6
-                    explosions.append([boss.centerx, boss.centery, 6])
-
-                    if not pb.get("ally"):
-                        combo += 1
-                        combo_timer = 180
-                        buff_gauge = min(20, buff_gauge + 1)
-
-                    hit = True
+            # 弾相殺（HP制）
+            for eb in bullets[:]:
+                if pb["rect"].colliderect(eb["rect"]):
+                    eb["hp"] -= 1
 
                     if not pb.get("pierce"):
                         if pb in player_bullets:
                             player_bullets.remove(pb)
-                        try:
-                            player_bullets.remove(pb)
-                        except ValueError:
-                            pass
+
+                    if eb["hp"] <= 0:
+                        bullets.remove(eb)
+
+                    hit = True
+                    break
+
+            if pb.get("pierce") and pb.get("hit_enemy"):
+                continue
+
+            if pb.get("pierce"):
+                pb["hit_enemy"] = True
+
+            if boss.colliderect(pb["rect"]):
+                boss_hp -= pb["power"]
+                shake_timer = 6
+                explosions.append([boss.centerx, boss.centery, 6])
+
+                if not pb.get("ally"):
+                    combo += 1
+                    combo_timer = 180
+                    buff_gauge = min(20, buff_gauge + 1)
+
+                hit = True
+
+                if not pb.get("pierce"):
+                    if pb in player_bullets:
+                        player_bullets.remove(pb)
+
+        # ===== 味方CP（発射だけ強化）=====
+        for i, cp in enumerate(cp_allies):
 
             if ally_hp[i] > 0:
 
                 target_x = boss.centerx
 
-                # 移動
                 if i == 0:
                     cp_pos[i] += (target_x - cp_pos[i]) * 0.08
                     cp.x = int(cp_pos[i])
@@ -684,43 +681,23 @@ async def boss_battle(level):
 
                 cp.x = max(0, min(WIDTH - cp.width, cp.x))
 
-                # 攻撃
-                if i == 0:
-                    if random.randint(0, max(40 - level, 10)) == 0:
-                        player_bullets.append({
-                            "rect": pygame.Rect(cp.centerx - 3, cp.y + 20, 6, 12),
-                            "power": 1 + attack_power,
-                            "ally": True
-                        })
-
-                elif i == 1:
-                    if random.randint(0, max(30 - level, 8)) == 0:
-                        player_bullets.append({
-                            "rect":pygame.Rect(cp.centerx - 3, cp.y + 20, 6, 12),
-                            "power": 1.2 + attack_power,
-                            "ally": True
-                        })
-
-                elif i == 2:
-                    if random.randint(0, max(25 - level, 6)) == 0:
-                        for _ in range(2):
-                            player_bullets.append({
-                                "rect": pygame.Rect(cp.centerx + random.randint(-10, 10), cp.y + 20, 6, 12),
-                                "power": 0.7 + attack_power,
-                                "ally": True
-                            })
+                # 🔥 Lv10相当（ここだけ変更）
+                if random.randint(0, 8) == 0:
+                    player_bullets.append({
+                        "rect": pygame.Rect(cp.centerx - 3, cp.y + 20, 6, 12),
+                        "power": 2 + attack_power,
+                        "ally": True
+                    })
 
             else:
-                # 復活
                 ally_respawn[i] += 1
                 if ally_respawn[i] >= 300:
                     ally_hp[i] = 3 + level // 5
                     ally_respawn[i] = 0
 
-
         # ===== 被弾 =====
         for b in bullets[:]:
-            if not player_dead and player.colliderect(b):
+            if not player_dead and player.colliderect(b["rect"]):
                 player_hp -= 1
                 shake_timer = 8
                 explosions.append([player.centerx, player.centery, 6])
@@ -728,65 +705,42 @@ async def boss_battle(level):
 
                 if player_hp <= 0:
                     player_dead = True
-
-                    # ===== バフリセット =====
                     cooldown_reduction = 0
                     attack_power = 0
                     buff_gauge = 0
-
-                    combo = 0
-
-                    # 🔥これ追加
                     special_gauge = 0
-
                     combo = 0
 
-        # ===== 味方被弾 =====
-        for i, cp in enumerate(cp_allies):
-            for b in bullets[:]:
-                if ally_hp[i] > 0 and cp.colliderect(b):
-                    ally_hp[i] -= 1
-                    explosions.append([cp.centerx, cp.centery, 5])
-                    bullets.remove(b)
-
-        # ===== コンボ減少（3秒）=====
+        # ===== コンボ減少 =====
         if combo_timer > 0:
             combo_timer -= 1
         else:
             combo = 0
 
-        # ===== 時間制限 =====
         time_sec = (pygame.time.get_ticks() - start_time) / 1000
+
         if time_sec >= 120:
             return "LOSE", 0, time_sec
 
-        # ===== ボス撃破 =====
         if boss_hp <= 0:
             return "WIN", int((level + 1) ** 3 * 150), time_sec
 
-        # ===== 描画 =====
+        # ===== 描画（完全維持）=====
         pygame.draw.rect(screen, BLUE, player.move(offset, 0) if not player_dead else player)
         pygame.draw.rect(screen, PURPLE, boss.move(offset, 0))
 
-        # 味方
         for i, cp in enumerate(cp_allies):
             color = GREEN if ally_hp[i] > 0 else GRAY
             pygame.draw.rect(screen, color, cp.move(offset, 0))
 
-        # ボス弾
-        # ===== ボス弾移動（これが無いと止まる）=====
         for b in bullets:
-            b.y += 6
+            pygame.draw.rect(screen, RED, b["rect"].move(offset, 0))
 
-        for b in bullets:
-            pygame.draw.rect(screen, RED, b.move(offset, 0))
-
-        # プレイヤー弾
         for pb in player_bullets:
             color = pb.get("color", WHITE)
             pygame.draw.rect(screen, color, pb["rect"].move(offset, 0))
 
-        # ===== 爆発 =====
+        # 爆発
         for exp in explosions[:]:
             pygame.draw.circle(screen, (255, 200, 0), (exp[0] + offset, exp[1]), exp[2])
             pygame.draw.circle(screen, (255, 100, 0), (exp[0] + offset, exp[1]), exp[2] // 2)
@@ -794,18 +748,17 @@ async def boss_battle(level):
             if exp[2] > 25:
                 explosions.remove(exp)
 
-        # ===== HPバー =====
+        # HPバー
         pygame.draw.rect(screen, WHITE, (50, HEIGHT - 40, 300, 20), 2)
         pygame.draw.rect(screen, BLUE, (50, HEIGHT - 40, 300 * (player_hp / max_player_hp), 20))
 
         pygame.draw.rect(screen, WHITE, (50, 10, 300, 20), 2)
         pygame.draw.rect(screen, RED, (50, 10, 300 * (boss_hp / max_boss_hp), 20))
 
-        # ===== SPバー =====
+        # SPバー
         pygame.draw.rect(screen, WHITE, (WIDTH - 110, HEIGHT - 300, 80, 10), 2)
         pygame.draw.rect(screen, YELLOW, (WIDTH - 110, HEIGHT - 300, 80 * (special_gauge / 10), 10))
 
-        # ===== ボタン =====
         pygame.draw.rect(screen, GREEN, left_btn)
         pygame.draw.rect(screen, GREEN, right_btn)
 
@@ -819,7 +772,6 @@ async def boss_battle(level):
         pygame.draw.rect(screen, YELLOW if buff_ready else GRAY, buff_s_btn)
         pygame.draw.rect(screen, YELLOW if buff_ready else GRAY, buff_h_btn)
 
-        # ===== テキスト =====
         screen.blit(font_small.render("L", True, WHITE),
                     font_small.render("L", True, WHITE).get_rect(center=left_btn.center))
         screen.blit(font_small.render("R", True, WHITE),
@@ -836,14 +788,11 @@ async def boss_battle(level):
         screen.blit(font_small.render("H", True, WHITE),
                     font_small.render("H", True, WHITE).get_rect(center=buff_h_btn.center))
 
-        # ===== バフゲージ =====
         pygame.draw.rect(screen, WHITE, (240, HEIGHT - 110, 100, 6), 1)
         pygame.draw.rect(screen, YELLOW, (240, HEIGHT - 110, 100 * (buff_gauge / 20), 6))
 
-        # ===== 時間表示 =====
         screen.blit(font_small.render(f"{time_sec:.2f}s", True, WHITE), (10, 10))
 
-        # ===== コンボ表示 =====
         if combo > 0:
             screen.blit(font_small.render(f"{combo} COMBO", True, YELLOW),
                         (WIDTH // 2 - 50, 120))
