@@ -49,8 +49,70 @@ class Button:
 
 
 # =========================
-# 弾除けゲーム
+# 弾除けゲーム（弾の種類追加版）
 # =========================
+class Bullet:
+    def __init__(self, x, y):
+        self.type = random.choice(["normal", "fast", "big", "split", "homing", "slow", "wobble"])
+        self.x = x
+        self.y = y
+        self.size = 10
+        self.speed = 5
+        self.dx = 0  # 横ブレ用
+        self.score = 1  # スコア用（必要なら）
+
+        # 弾種類ごとの設定
+        if self.type == "big":
+            self.size = 20
+            self.speed = 5
+            self.score = 7
+        elif self.type == "homing":
+            self.speed = 3
+            self.score = 6
+        elif self.type == "wobble":
+            self.speed = 4
+            self.dx = random.choice([-2, 2])
+            self.score = 5
+        elif self.type == "split":
+            self.speed = 5
+            self.score = 4
+        elif self.type == "fast":
+            self.speed = 8
+            self.score = 3
+        elif self.type == "slow":
+            self.speed = 2
+            self.score = 2
+        else:
+            self.speed = 5
+            self.score = 1
+
+    def move(self, player_x, player_y):
+        if self.type == "homing":
+            # プレイヤーに少し追従
+            if player_x + 25 > self.x:
+                self.x += 1
+            elif player_x + 25 < self.x:
+                self.x -= 1
+        elif self.type == "wobble":
+            self.x += self.dx
+            if self.x < 0 or self.x > WIDTH - self.size:
+                self.dx *= -1
+
+        self.y += self.speed
+
+    def draw(self, surface):
+        color_map = {
+            "normal": RED,
+            "fast": (255, 100, 100),
+            "big": (255, 50, 50),
+            "split": (255, 150, 0),
+            "homing": (255, 0, 255),
+            "slow": (100, 255, 100),
+            "wobble": (100, 255, 255),
+        }
+        pygame.draw.rect(surface, color_map[self.type], (self.x, self.y, self.size, self.size))
+
+
 async def dodge_game(level):
     player = pygame.Rect(WIDTH // 2 - 25, HEIGHT - 120, 50, 50)
     bullets = []
@@ -67,9 +129,9 @@ async def dodge_game(level):
         clock.tick(60)
         screen.fill(BLACK)
 
-        # 弾生成
+        # 弾生成（全種類ランダム）
         if random.randint(0, 20) == 0:
-            bullets.append(pygame.Rect(random.randint(0, WIDTH - 10), -10, 10, 10))
+            bullets.append(Bullet(random.randint(0, WIDTH - 20), -10))
 
         moving_left = False
         moving_right = False
@@ -101,8 +163,8 @@ async def dodge_game(level):
 
         # 弾処理
         for b in bullets[:]:
-            b.y += speed
-            if player.colliderect(b):
+            b.move(player.x, player.y)
+            if player.colliderect(pygame.Rect(b.x, b.y, b.size, b.size)):
                 time_sec = (pygame.time.get_ticks() - start_time) / 1000
                 return "LOSE", 0, time_sec
             if b.y > HEIGHT:
@@ -111,7 +173,7 @@ async def dodge_game(level):
         # 描画
         pygame.draw.rect(screen, BLUE, player)
         for b in bullets:
-            pygame.draw.rect(screen, RED, b)
+            b.draw(screen)
 
         pygame.draw.rect(screen, GREEN, left_btn)
         pygame.draw.rect(screen, GREEN, right_btn)
