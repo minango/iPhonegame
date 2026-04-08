@@ -674,8 +674,6 @@ async def boss_battle(level):
         for pb in player_bullets:
             if pb.get("ally"):
                 pb["rect"].y -= 7  # ←高速化
-            else:
-                pb["rect"].y -= 2
 
         for b in bullets:
             b["rect"].y += 6
