@@ -317,7 +317,7 @@ async def normal_game(cp_level, max_player_hp):
                 buff_gauge = 0
             elif buff_h:
                 max_player_hp += 2
-                player_hp = min(max_player_hp, player_hp + 2)
+                player_hp = min(max_player_hp, player_hp + 5)
                 buff_gauge = 0
 
         if moving_left:
@@ -637,7 +637,8 @@ async def boss_battle(level):
                 attack_power += 0.15
                 buff_gauge = 0
             elif buff_h:
-                player_hp = min(max_player_hp, player_hp + 2)
+                max_player_hp += 2
+                player_hp = min(max_player_hp, player_hp + 5)
                 buff_gauge = 0
 
         if player_dead:
